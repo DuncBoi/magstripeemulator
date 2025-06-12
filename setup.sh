@@ -11,7 +11,7 @@ echo "[*] Setting up USB gadget in configfs..."
 
 # Cleanup if it exists
 if [ -d "$GADGET_DIR" ]; then
-  echo "[*] Gadget already exists, cleaning up..."
+  echo "" | sudo tee "$GADGET_DIR/UDC"
   sudo rm -rf "$GADGET_DIR"
 fi
 
@@ -33,11 +33,10 @@ echo "Virtual Magstripe Reader" | sudo tee strings/0x409/product
 # Create HID function
 sudo mkdir -p functions/hid.usb0
 
-REPORT_DESC_SIZE=27
-echo $REPORT_DESC_SIZE | sudo tee functions/hid.usb0/report_length
+REPORT_DESC_LEN=64
+echo $REPORT_DESC_LEN | sudo tee functions/hid.usb0/report_length
 echo 1 | sudo tee functions/hid.usb0/protocol
 echo 1 | sudo tee functions/hid.usb0/subclass
-echo 8 | sudo tee functions/hid.usb0/report_desc_size
 
 echo -ne '\x06\x00\xFF\x09\x01\xA1\x01\x15\x00\x26\xFF\x00\x75\x08\x95\x40\x09\x01\x81\x02\x09\x01\x91\x02\xC0' | sudo tee functions/hid.usb0/report_desc > /dev/null
 
