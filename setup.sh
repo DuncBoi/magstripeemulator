@@ -7,16 +7,12 @@ sudo modprobe libcomposite
 
 sudo mount -t configfs configfs /sys/kernel/config/ || true
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GADGET_DIR=/sys/kernel/config/usb_gadget/magstripe_gadget
 echo "[*] Setting up USB gadget in configfs..."
 
 # Teardown old gadget
-if [ -d "$GADGET_DIR" ]; then
-  pushd "$GADGET_DIR" >/dev/null
-  echo "" | sudo tee UDC         # unbind UDC
-  popd >/dev/null
-  sudo rm -rf "$GADGET_DIR"
-fi
+sudo rm -rf "$GADGET_DIR"
 
 # Create gadget
 sudo mkdir -p "$GADGET_DIR"
@@ -42,7 +38,7 @@ echo 1  | sudo tee functions/hid.usb0/subclass
 # report descriptor (27 bytes long)
 REPORT_DESC_HEX='\x06\x00\xFF\x09\x01\xA1\x01\x15\x00\x26\xFF\x00\x75\x08\x95\x40\x09\x01\x81\x02\x09\x01\x91\x02\xC0'
 REPORT_LEN=27
-echo $REPORT_LEN | sudo tee functions/hid.usb0/report_desc_size
+echo $REPORT_LEN | sudo tee functions/hid.usb0/report_length
 echo -ne "$REPORT_DESC_HEX" | sudo tee functions/hid.usb0/report_desc > /dev/null
 
 # Configuration
@@ -62,5 +58,5 @@ fi
 echo $UDC | sudo tee UDC
 
 echo "[*] Gadget up. Launching uhid..."
-sudo ./uhid
+sudo "$SCRIPT_DIR/uhid"
 echo "[*] All done."
