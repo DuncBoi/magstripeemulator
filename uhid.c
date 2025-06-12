@@ -52,7 +52,11 @@ int main(void) {
 
     memcpy(cr.rd_data, report_desc, sizeof(report_desc));
 
-    if (write(fd, &cr, sizeof(cr)) < 0) die("UHID_CREATE2");
+    struct uhid_event ev = {0};
+    ev.type = UHID_CREATE2;
+    ev.u.create2 = cr;
+
+    if (write(fd, &ev, sizeof(ev)) < 0) die("UHID_CREATE2 faaaaaail");
     printf("[+] Gadget created, waiting for host to enumerate...\n");
     sleep(1);
 
@@ -66,8 +70,12 @@ int main(void) {
     inp.size = sizeof(report);
     memcpy(inp.data, report, sizeof(report));
 
+    struct uhid_event ev2 = {0};
+    ev2.type = UHID_INPUT2;
+    ev2.u.input2 = inp;
+
     printf("[+] Sending swipe: %s\n", track2);
-    if (write(fd, &inp, sizeof(inp)) < 0) die("UHID_INPUT2");
+    if (write(fd, &ev2, sizeof(ev2)) < 0) die("UHID_INPUT2");
 
     sleep(1);
 
