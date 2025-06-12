@@ -5,6 +5,8 @@ echo "[*] Loading kernel modules..."
 sudo modprobe dwc2
 sudo modprobe libcomposite
 
+sudo mount -t configfs configfs /sys/kernel/config/ || true
+
 GADGET_DIR=/sys/kernel/config/usb_gadget/magstripe_gadget
 echo "[*] Setting up USB gadget in configfs..."
 
