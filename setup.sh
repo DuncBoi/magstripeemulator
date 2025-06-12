@@ -1,84 +1,60 @@
+#!/bin/bas
 #!/bin/bash
 set -e
 
-GADGET_DIR=/sys/kernel/config/usb_gadget/magstripe_gadget
-
-echo "[*] Cleaning up any old gadget…"
-if [ -d "$GADGET_DIR" ]; then
-  pushd "$GADGET_DIR" >/dev/null
-
-  # 1) Unbind
-  if [ -f UDC ] && [ -n "$(cat UDC)" ]; then
-    echo "" | sudo tee UDC
-  fi
-
-  # 2) Unlink HID function from config
-  sudo rm -f configs/c.1/hid.usb0
-
-  # 3) Remove HID function directory
-  sudo rmdir functions/hid.usb0
-
-  # 4) Remove config strings
-  sudo rmdir configs/c.1/strings/0x409
-
-  # 5) Remove config
-  sudo rmdir configs/c.1
-
-  popd >/dev/null
-
-  # 6) Remove gadget dir
-  sudo rmdir "$GADGET_DIR"
+echo "[*] Mounting configfs…"
+if ! mountpoint -q /sys/kernel/config; then
+  sudo mount -t configfs configfs /sys/kernel/config
 fi
 
-echo "[*] Loading kernel modules…"
-sudo modprobe dwc2
-sudo modprobe libcomposite
-sudo mount -t configfs configfs /sys/kernel/config/ || true
+G=/sys/kernel/config/usb_gadget/magstripe_gadget
+echo "[*] Cleaning up any old gadget…"
+[ -d "$G" ] && sudo rm -rf "$G"
 
-echo "[*] Creating new gadget…"
-sudo mkdir -p "$GADGET_DIR"
-cd "$GADGET_DIR"
+echo "[*] Creating gadget at $G"
+sudo mkdir -p "$G"
+cd "$G"
 
-# Device IDs
-echo 0x1d6b | sudo tee idVendor
-echo 0x0104 | sudo tee idProduct
-echo 0x0100 | sudo tee bcdDevice
-echo 0x0200 | sudo tee bcdUSB
+echo "[*] Writing device IDs…"
+echo 0x1d6b | sudo tee idVendor      >/dev/null
+echo 0x0104 | sudo tee idProduct     >/dev/null
+echo 0x0100 | sudo tee bcdDevice     >/dev/null
+echo 0x0200 | sudo tee bcdUSB        >/dev/null
 
-# Strings
+echo "[*] Writing English strings…"
 sudo mkdir -p strings/0x409
-echo "0123456789"              | sudo tee strings/0x409/serialnumber
-echo "Xerox"                   | sudo tee strings/0x409/manufacturer
-echo "Virtual Magstripe Reader"| sudo tee strings/0x409/product
+echo "0123456789"               | sudo tee strings/0x409/serialnumber >/dev/null
+echo "Xerox"                    | sudo tee strings/0x409/manufacturer >/dev/null
+echo "Virtual Magstripe Reader" | sudo tee strings/0x409/product      >/dev/null
 
-# HID function
+echo "[*] Configuring HID function…"
 sudo mkdir -p functions/hid.usb0
-echo 1 | sudo tee functions/hid.usb0/protocol
-echo 1 | sudo tee functions/hid.usb0/subclass
+echo 1 | sudo tee functions/hid.usb0/protocol      >/dev/null
+echo 1 | sudo tee functions/hid.usb0/subclass      >/dev/null
+echo 27| sudo tee functions/hid.usb0/report_desc_size >/dev/null
+# 27-byte report descriptor (vendor/Fake HID)
+printf '\x06\x00\xFF\x09\x01\xA1\x01\x15\x00\x26\xFF\x00\x75\x08\x95\x40\x09\x01\x81\x02\x09\x01\x91\x02\xC0' \
+  | sudo tee functions/hid.usb0/report_desc >/dev/null
 
-# Report descriptor
-REPORT_DESC_HEX='\x06\x00\xFF\x09\x01\xA1\x01\x15\x00\x26\xFF\x00\x75\x08\x95\x40\x09\x01\x81\x02\x09\x01\x91\x02\xC0'
-REPORT_LEN=27
-echo $REPORT_LEN | sudo tee functions/hid.usb0/report_desc_size
-echo -ne "$REPORT_DESC_HEX" | sudo tee functions/hid.usb0/report_desc > /dev/null
-
-# Configuration
+echo "[*] Creating configuration…"
 sudo mkdir -p configs/c.1/strings/0x409
-echo "Config 1: HID" | sudo tee configs/c.1/strings/0x409/configuration
-echo 120            | sudo tee configs/c.1/MaxPower
+echo "Config 1: HID" | sudo tee configs/c.1/strings/0x409/configuration >/dev/null
+echo 120           | sudo tee configs/c.1/MaxPower               >/dev/null
 
-# Link HID function in
+echo "[*] Binding HID function into configuration…"
 sudo ln -s functions/hid.usb0 configs/c.1/
 
-# Bind to UDC
+echo "[*] Enabling gadget (binding to UDC)…"
 UDC=$(ls /sys/class/udc | head -n1)
 if [ -z "$UDC" ]; then
-  echo "ERROR: no UDC found; gadget cannot be enabled" >&2
+  echo "ERROR: no UDC found; cannot enable gadget" >&2
   exit 1
 fi
-echo $UDC | sudo tee UDC
+echo "$UDC" | sudo tee UDC >/dev/null
 
-echo "[*] Gadget up. Launching uhid…"
-sudo ./uhid
+echo "[*] Gadget is live. Now running uhid swipe…"
+# adjust path if your uhid binary lives elsewhere
+sudo /usr/local/bin/uhid
 
 echo "[*] All done."
+ne."
