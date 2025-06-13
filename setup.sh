@@ -6,6 +6,7 @@ if ! mountpoint -q /sys/kernel/config; then
   sudo mount -t configfs configfs /sys/kernel/config
 fi
 
+ORIG_DIR=$(pwd)
 G=/sys/kernel/config/usb_gadget/magstripe_gadget
 echo "[*] Cleaning up any old gadget…"
 [ -d "$G" ] && sudo rm -rf "$G"
@@ -53,6 +54,7 @@ echo "$UDC" | sudo tee UDC >/dev/null
 
 echo "[*] Gadget is live. Now running uhid swipe…"
 
+cd "$ORIG_DIR"
 echo "[*] Building uhid from Makefile…"
 make
 
@@ -61,7 +63,7 @@ if [ ! -f ./uhid ]; then
   exit 1
 fi
 
-chmod +x uhid
+chmod 666 /dev/uhid
 
 echo "[*] Running uhid…"
 sudo ./uhid
