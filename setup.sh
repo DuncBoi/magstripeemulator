@@ -63,7 +63,7 @@ if [ ! -f ./uhid ]; then
   exit 1
 fi
 
-chmod 666 /dev/uhid
+sudo chmod 666 /dev/uhid
 
 echo "[*] Running uhid…"
 sudo ./uhid
