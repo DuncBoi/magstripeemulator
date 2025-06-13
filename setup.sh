@@ -1,4 +1,3 @@
-#!/bin/bas
 #!/bin/bash
 set -e
 
@@ -31,7 +30,7 @@ echo "[*] Configuring HID function…"
 sudo mkdir -p functions/hid.usb0
 echo 1 | sudo tee functions/hid.usb0/protocol      >/dev/null
 echo 1 | sudo tee functions/hid.usb0/subclass      >/dev/null
-echo 27| sudo tee functions/hid.usb0/report_desc_size >/dev/null
+echo 27| sudo tee functions/hid.usb0/report_length >/dev/null
 # 27-byte report descriptor (vendor/Fake HID)
 printf '\x06\x00\xFF\x09\x01\xA1\x01\x15\x00\x26\xFF\x00\x75\x08\x95\x40\x09\x01\x81\x02\x09\x01\x91\x02\xC0' \
   | sudo tee functions/hid.usb0/report_desc >/dev/null
@@ -53,8 +52,18 @@ fi
 echo "$UDC" | sudo tee UDC >/dev/null
 
 echo "[*] Gadget is live. Now running uhid swipe…"
-# adjust path if your uhid binary lives elsewhere
-sudo /usr/local/bin/uhid
+
+echo "[*] Building uhid from Makefile…"
+make
+
+if [ ! -f ./uhid ]; then
+  echo "ERROR: uhid binary not found after make" >&2
+  exit 1
+fi
+
+chmod +x uhid
+
+echo "[*] Running uhid…"
+sudo ./uhid
 
 echo "[*] All done."
-ne."
